@@ -1,280 +1,271 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fleet Management Dashboard</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fleet Management Dashboard</title>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
 
-  <!-- FullCalendar -->
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Google Maps -->
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY"></script>
 
-  <!-- Google Maps API: replace YOUR_GOOGLE_MAPS_API_KEY below -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY"></script>
+<!-- Awesomplete -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.js"></script>
 
-  <style>
-    body, html {
-      margin: 0; padding: 0; height: 100%;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f5f7fa;
-      color: #333;
-      display: flex; flex-direction: column;
-      min-height: 100vh;
-    }
+<!-- FirebaseUI -->
+<link type="text/css" rel="stylesheet" href="https://cdn.firebase.com/libs/firebaseui/6.0.2/firebaseui.css" />
+<script src="https://cdn.firebase.com/libs/firebaseui/6.0.2/firebaseui.js"></script>
 
-    nav {
-      background-color: #1e293b;
-      color: white;
-      padding: 1rem 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    nav h1 {
-      margin: 0; font-weight: 600; font-size: 1.4rem;
-    }
-    nav button {
-      background-color: #ef4444;
-      border: none;
-      color: white;
-      padding: 0.5rem 1rem;
-      font-weight: 600;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    nav button:hover {
-      background-color: #dc2626;
-    }
+<style>
+  /* Reset & base */
+  body {
+    font-family: 'Poppins', Arial, sans-serif;
+    margin: 0;
+    padding-top: 70px; /* for fixed menu */
+    background-color: #f4f7fc;
+    color: #333;
+  }
+  h2 {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    text-align: center;
+  }
 
-    main {
-      flex: 1;
-      padding: 1rem 2rem;
-      max-width: 1200px;
-      margin: 2rem auto;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 15px rgb(0 0 0 / 0.05);
-      display: grid;
-      grid-template-columns: 2fr 3fr;
-      gap: 2rem;
-      height: 80vh;
-    }
+  /* Top menu bar */
+  .top-menu {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    background-color: #007bff;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 25px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    z-index: 1000;
+  }
+  .menu-left .logo {
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: 1px;
+    user-select: none;
+  }
+  .menu-right {
+    display: flex;
+    gap: 25px;
+    align-items: center;
+  }
+  .menu-item {
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-size: 1rem;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background-color 0.25s ease;
+  }
+  .menu-item:hover,
+  .menu-item.active {
+    background-color: rgba(255, 255, 255, 0.25);
+  }
+  .logout-btn {
+    border: 1.5px solid white;
+    background: transparent;
+  }
+  .logout-btn:hover {
+    background: white;
+    color: #007bff;
+  }
 
-    #calendar {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 1rem;
-      box-shadow: inset 0 0 5px rgb(0 0 0 / 0.05);
-      overflow-y: auto;
-    }
+  /* Login container */
+  #login-container {
+    max-width: 400px;
+    margin: 60px auto;
+    padding: 30px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    text-align: center;
+  }
 
-    #chart-container {
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 1rem;
-      box-shadow: inset 0 0 5px rgb(0 0 0 / 0.05);
-      display: flex;
+  /* Dashboard container */
+  #dashboard-container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* Filters */
+  .filters {
+    background: white;
+    padding: 15px 25px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .filters label {
+    display: flex;
+    flex-direction: column;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #34495e;
+  }
+  .filters input {
+    padding: 8px 10px;
+    margin-top: 6px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    min-width: 180px;
+    transition: border-color 0.3s ease;
+  }
+  .filters input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 6px #a3d1ff;
+  }
+  #filterBtn {
+    align-self: flex-end;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 22px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 22px;
+  }
+  #filterBtn:hover {
+    background-color: #0056b3;
+  }
+
+  /* Map */
+  #map {
+    width: 100%;
+    height: 550px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .filters {
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
+      gap: 12px;
     }
-
-    #map {
-      margin-top: 1.5rem;
-      height: 300px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-      box-shadow: inset 0 0 5px rgb(0 0 0 / 0.05);
+    .filters label, #filterBtn {
+      min-width: 100%;
     }
-
-    @media (max-width: 900px) {
-      main {
-        grid-template-columns: 1fr;
-        height: auto;
-        margin: 1rem;
-      }
-      #calendar, #chart-container, #map {
-        height: 350px;
-        margin-bottom: 1rem;
-      }
+    #filterBtn {
+      margin-top: 0;
     }
-  </style>
+  }
+</style>
 </head>
 <body>
 
-<nav>
-  <h1>Fleet Management Dashboard</h1>
-  <button id="logoutBtn">Logout</button>
+<nav class="top-menu" style="display:none;">
+  <div class="menu-left">
+    <span class="logo">FleetManager</span>
+  </div>
+  <div class="menu-right">
+    <a href="#" class="menu-item active">Dashboard</a>
+    <a href="#" class="menu-item">Trips</a>
+    <a href="#" class="menu-item">Drivers</a>
+    <a href="#" class="menu-item">Vehicles</a>
+    <button id="logoutBtn" class="menu-item logout-btn">Logout</button>
+  </div>
 </nav>
 
-<main>
-  <section id="calendar"></section>
-  <section id="chart-container">
-    <canvas id="analyticsChart" width="400" height="200"></canvas>
-    <div id="map"></div>
-  </section>
-</main>
+<h2 style="display:none;">Fleet Management Dashboard</h2>
 
+<div id="login-container">
+  <h3>Please Log In</h3>
+  <div id="firebaseui-auth-container"></div>
+</div>
+
+<div id="dashboard-container" style="display:none;">
+
+  <div class="filters">
+    <label for="driverInput">Driver:
+      <input id="driverInput" placeholder="Start typing driver name..." autocomplete="off" />
+    </label>
+
+    <label for="vehicleInput">Vehicle:
+      <input id="vehicleInput" placeholder="Start typing vehicle plate..." autocomplete="off" />
+    </label>
+
+    <label for="startDateInput">Start Date:
+      <input type="date" id="startDateInput" />
+    </label>
+
+    <label for="endDateInput">End Date:
+      <input type="date" id="endDateInput" />
+    </label>
+
+    <button id="filterBtn">Filter Trips</button>
+  </div>
+
+  <div id="map"></div>
+</div>
+
+<script src="app.js"></script>
 <script>
-  // ========== Firebase Setup ==========
-  // Replace this with your Firebase config
-  const firebaseConfig = {
-    apiKey: "YOUR_FIREBASE_API_KEY",
-    authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
-    projectId: "YOUR_FIREBASE_PROJECT_ID",
-    // other config values...
-  };
+  // Show/hide UI and handle logout button
 
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
+  const navMenu = document.querySelector('.top-menu');
+  const dashboardHeader = document.querySelector('h2');
+  const loginContainer = document.getElementById('login-container');
+  const dashboardContainer = document.getElementById('dashboard-container');
+  const logoutBtn = document.getElementById('logoutBtn');
 
-  // Auth state check
-  auth.onAuthStateChanged(user => {
-    if (!user) {
-      window.location.href = 'login.html'; // Adjust path if needed
+  // Firebase auth state listener
+  firebase.auth().onAuthStateChanged(user => {
+    if (user) {
+      // Show dashboard and menu
+      navMenu.style.display = 'flex';
+      dashboardHeader.style.display = 'block';
+      loginContainer.style.display = 'none';
+      dashboardContainer.style.display = 'block';
+
+      // Initialize your app (map, autocomplete, etc) here or in app.js's auth success callback
+    } else {
+      // Show login screen only
+      navMenu.style.display = 'none';
+      dashboardHeader.style.display = 'none';
+      loginContainer.style.display = 'block';
+      dashboardContainer.style.display = 'none';
     }
   });
 
-  // Logout handler
-  document.getElementById('logoutBtn').addEventListener('click', () => {
-    auth.signOut().then(() => {
-      window.location.href = 'login.html'; // Adjust path if needed
-    });
-  });
-
-  // ========== FullCalendar Setup ==========
-  document.addEventListener('DOMContentLoaded', () => {
-    const calendarEl = document.getElementById('calendar');
-    const calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: 'dayGridMonth',
-      height: 'auto',
-      headerToolbar: {
-        left: 'prev,next today',
-        center: 'title',
-        right: 'dayGridMonth,timeGridWeek,timeGridDay'
-      },
-      events: [
-        { title: 'Maintenance', start: new Date().toISOString().split('T')[0], allDay: true },
-        { title: 'Vehicle Inspection', start: new Date(new Date().setDate(new Date().getDate() + 4)).toISOString().split('T')[0] }
-      ],
-    });
-    calendar.render();
-  });
-
-  // ========== Chart.js Setup ==========
-  const ctx = document.getElementById('analyticsChart').getContext('2d');
-  const analyticsChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      datasets: [{
-        label: 'Trips per Day',
-        data: [3, 5, 2, 6, 4, 7, 3],
-        fill: false,
-        borderColor: '#3b82f6',
-        tension: 0.2,
-        pointRadius: 5,
-        pointHoverRadius: 7,
-        backgroundColor: '#60a5fa'
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { labels: { color: '#333', font: { size: 14, weight: '600' } } }
-      },
-      scales: {
-        y: { beginAtZero: true, ticks: { color: '#555' } },
-        x: { ticks: { color: '#555' } }
-      }
-    }
-  });
-
-  // ========== Google Maps Setup ==========
-  let map, markers = [], pathPolyline;
-
-  function initMap() {
-    // Center map roughly in Botswana (adjust to your region)
-    const center = { lat: -24.658, lng: 25.908 };
-
-    map = new google.maps.Map(document.getElementById('map'), {
-      center,
-      zoom: 7,
-    });
-
-    // Load GPS data from Firestore and update map
-    watchGPSData();
-  }
-
-  // Simulate tracking multiple vehicles, here with a single vehicle ID "vehicle1"
-  const vehicleId = 'vehicle1';
-
-  // Listen to Firestore location updates in real time
-  function watchGPSData() {
-    const locationsRef = db.collection('vehicles').doc(vehicleId).collection('locations').orderBy('timestamp');
-
-    locationsRef.onSnapshot(snapshot => {
-      // Clear existing markers
-      markers.forEach(marker => marker.setMap(null));
-      markers = [];
-
-      const pathCoords = [];
-
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const pos = { lat: data.latitude, lng: data.longitude };
-        pathCoords.push(pos);
-
-        // Place marker for each location point
-        const marker = new google.maps.Marker({
-          position: pos,
-          map: map,
-          title: new Date(data.timestamp.toDate()).toLocaleString(),
-        });
-        markers.push(marker);
+  // Logout button logic
+  logoutBtn.addEventListener('click', () => {
+    firebase.auth().signOut()
+      .then(() => {
+        // You can show a toast or redirect after sign out if you want
+        console.log('User signed out');
+      })
+      .catch(error => {
+        console.error('Sign out error:', error);
       });
-
-      // Draw polyline for trip history
-      if (pathPolyline) {
-        pathPolyline.setMap(null);
-      }
-
-      pathPolyline = new google.maps.Polyline({
-        path: pathCoords,
-        geodesic: true,
-        strokeColor: '#3b82f6',
-        strokeOpacity: 0.8,
-        strokeWeight: 4,
-      });
-      pathPolyline.setMap(map);
-
-      // Adjust map bounds to fit all markers
-      if (pathCoords.length) {
-        const bounds = new google.maps.LatLngBounds();
-        pathCoords.forEach(coord => bounds.extend(coord));
-        map.fitBounds(bounds);
-      }
-    });
-  }
-
-  // Initialize the map after page load
-  window.initMap = initMap;
-
-  // Because Google Maps JS API needs a callback, call initMap here
-  window.addEventListener('load', () => {
-    initMap();
   });
 </script>
 
