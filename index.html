@@ -3,68 +3,205 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fleet Dashboard</title>
-  <link rel="stylesheet" href="style.css" />
-
-  <!-- Firebase libraries -->
+  <title>Dashboard</title>
+  
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
-  <!-- Firebase UI -->
-  <script src="https://www.gstatic.com/firebasejs/ui/6.0.2/firebase-ui-auth.js"></script>
-  <link rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.0.2/firebase-ui-auth.css" />
-
-  <!-- Google Maps -->
-  <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgUO-JbOZ-CEXyHxL-JAlPWvDs-FbiU2o&callback=initMap"
-    async defer></script>
+  <!-- FullCalendar -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* Basic Reset & Fonts */
+    body, html {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      display: flex; flex-direction: column;
+      min-height: 100vh;
+    }
+    /* Navigation */
+    nav {
+      background-color: #1e293b;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    nav h1 {
+      margin: 0; font-weight: 600; font-size: 1.4rem;
+    }
+    nav button {
+      background-color: #ef4444;
+      border: none;
+      color: white;
+      padding: 0.5rem 1rem;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    nav button:hover {
+      background-color: #dc2626;
+    }
+
+    /* Main Dashboard Layout */
+    main {
+      flex: 1;
+      padding: 1.5rem 2rem;
+      display: grid;
+      grid-template-columns: 2fr 3fr;
+      gap: 2rem;
+      background: white;
+      max-width: 1200px;
+      margin: 2rem auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgb(0 0 0 / 0.05);
+    }
+
+    /* Calendar Container */
+    #calendar {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1rem;
+      background: #fff;
+      box-shadow: inset 0 0 5px rgb(0 0 0 / 0.05);
+      height: 100%;
+      min-height: 500px;
+    }
+
+    /* Chart Container */
+    #chart-container {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: inset 0 0 5px rgb(0 0 0 / 0.05);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      min-height: 500px;
+    }
+
+    /* Responsive for smaller screens */
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+        margin: 1rem;
+        padding: 1rem;
+      }
+      #calendar, #chart-container {
+        min-height: 350px;
+      }
+    }
+
+  </style>
 </head>
 <body>
-  <div id="login-container">
-    <h2>Login</h2>
-    <div id="firebaseui-auth-container"></div>
-  </div>
 
-  <div id="dashboard-container" style="display:none;">
-    <h2>Fleet Dashboard</h2>
+<nav>
+  <h1>My Dashboard</h1>
+  <button id="logoutBtn">Logout</button>
+</nav>
 
-    <!-- Dashboard Menu -->
-    <nav id="dashboard-menu" style="margin-bottom: 20px;">
-      <button onclick="showSection('map')">Map</button>
-      <button onclick="showSection('charts')">Charts</button>
-    </nav>
+<main>
+  <section id="calendar"></section>
+  <section id="chart-container">
+    <canvas id="analyticsChart" width="400" height="400"></canvas>
+  </section>
+</main>
 
-    <!-- Map Section -->
-    <div id="map-section">
-      <div>
-        <input id="driverInput" placeholder="Driver Name" />
-        <input id="vehicleInput" placeholder="Vehicle ID" />
-        <input id="startDateInput" type="date" />
-        <input id="endDateInput" type="date" />
-        <button id="filterBtn">Filter</button>
-      </div>
-      <div id="map" style="width:100%; height:400px; margin-top:20px;"></div>
-    </div>
+<script>
+  // TODO: Replace with your Firebase config
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    // ... rest of your config
+  };
 
-    <!-- Charts Section -->
-    <div id="charts-section" style="display:none;">
-      <div class="charts-container">
-        <div class="chart-box">
-          <h3>Trips Per Day</h3>
-          <canvas id="tripsChart"></canvas>
-        </div>
-        <div class="chart-box">
-          <h3>Vehicle Usage</h3>
-          <canvas id="vehiclesChart"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
 
-  <script src="app.js"></script>
+  // Check Auth State
+  auth.onAuthStateChanged(user => {
+    if (!user) {
+      // Not logged in, redirect to login page or show login UI
+      window.location.href = 'login.html'; // Change as needed
+    }
+  });
+
+  // Logout button
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    auth.signOut().then(() => {
+      window.location.href = 'login.html'; // Change as needed
+    });
+  });
+
+  // Initialize FullCalendar
+  document.addEventListener('DOMContentLoaded', function() {
+    const calendarEl = document.getElementById('calendar');
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      height: '100%',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+      },
+      events: [
+        { title: 'Meeting', start: new Date().toISOString().split('T')[0], allDay: true },
+        { title: 'Project Deadline', start: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString().split('T')[0] }
+      ],
+    });
+    calendar.render();
+  });
+
+  // Chart.js example
+  const ctx = document.getElementById('analyticsChart').getContext('2d');
+  const analyticsChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      datasets: [{
+        label: 'Visits',
+        data: [12, 19, 7, 15, 11, 9, 14],
+        backgroundColor: '#3b82f6',
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          display: true,
+          labels: { color: '#333', font: { size: 14, weight: '600' } }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { color: '#555' }
+        },
+        x: {
+          ticks: { color: '#555' }
+        }
+      }
+    }
+  });
+</script>
+
 </body>
 </html>
