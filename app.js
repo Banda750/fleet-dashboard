@@ -1,10 +1,22 @@
 
 // --- Firebase config & initialization ---
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  // add other keys as needed
+  apiKey: "AIzaSyAgUO-JbOZ-CEXyHxL-JAlPWvDs-FbiU2o",
+  authDomain: "fleettrack-d8dd2.firebaseapp.com",
+  projectId: "fleettrack-d8dd2",
+  storageBucket: "fleettrack-d8dd2.firebasestorage.app",
+  messagingSenderId: "620292848866",
+  appId: "1:620292848866:web:db08b1b499c0f4c11db2bb"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
