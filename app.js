@@ -1,4 +1,4 @@
-// --- Firebase config ---
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyAgUO-JbOZ-CEXyHxL-JAlPWvDs-FbiU2o",
   authDomain: "fleettrack-d8dd2.firebaseapp.com",
@@ -13,21 +13,94 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// --- FirebaseUI Auth Setup ---
+// FirebaseUI Auth
 const ui = new firebaseui.auth.AuthUI(auth);
 const uiConfig = {
-  signInOptions: [firebase.auth.EmailAuthProvider.PROVIDER_ID],
+  signInOptions: [
+    firebase.auth.EmailAuthProvider.PROVIDER_ID
+  ],
   callbacks: {
-    signInSuccessWithAuthResult: function () {
-      document.getElementById("login-container").style.display = "none";
-      document.getElementById("dashboard-container").style.display = "block";
-      initMap();
-      setupCharts();
-      loadAndShowData();
+    signInSuccessWithAuthResult: function(authResult, redirectUrl) {
+      // Don't redirect; just show dashboard
       return false;
-    },
-  },
+    }
+  }
 };
+
+// Map setup
+let map;
+function initMap() {
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: { lat: -24.6282, lng: 25.9231 }, // Gaborone
+    zoom: 12,
+  });
+}
+
+// Show/hide sections
+function showSection(section) {
+  if (section === "map") {
+    document.getElementById("map-section").style.display = "block";
+    document.getElementById("charts-section").style.display = "none";
+  } else if (section === "charts") {
+    document.getElementById("map-section").style.display = "none";
+    document.getElementById("charts-section").style.display = "block";
+  }
+}
+
+// Chart.js variables
+let tripsChart;
+let vehiclesChart;
+
+function setupCharts() {
+  const tripsCtx = document.getElementById('tripsChart').getContext('2d');
+  tripsChart = new Chart(tripsCtx, {
+    type: 'bar',
+    data: {
+      labels: [], // populate dynamically
+      datasets: [{
+        label: 'Trips Per Day',
+        data: [],
+        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+
+  const vehiclesCtx = document.getElementById('vehiclesChart').getContext('2d');
+  vehiclesChart = new Chart(vehiclesCtx, {
+    type: 'doughnut',
+    data: {
+      labels: [], // populate dynamically
+      datasets: [{
+        label: 'Vehicle Usage',
+        data: [],
+        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#8AFF33', '#335BFF'],
+      }]
+    },
+    options: {
+      responsive: true
+    }
+  });
+}
+
+// Load data & update charts - placeholder function (add real queries here)
+async function loadAndShowData() {
+  // Dummy data for demo, replace with real Firestore queries and update charts:
+  tripsChart.data.labels = ['2025-08-01', '2025-08-02', '2025-08-03'];
+  tripsChart.data.datasets[0].data = [5, 8, 3];
+  tripsChart.update();
+
+  vehiclesChart.data.labels = ['Vehicle A', 'Vehicle B', 'Vehicle C'];
+  vehiclesChart.data.datasets[0].data = [10, 15, 7];
+  vehiclesChart.update();
+}
+
+// Listen for auth state changes
 firebase.auth().onAuthStateChanged((user) => {
   if (user) {
     document.getElementById("login-container").style.display = "none";
@@ -42,109 +115,13 @@ firebase.auth().onAuthStateChanged((user) => {
   }
 });
 
-// --- Google Maps setup ---
-let map;
-function initMap() {
-  map = new google.maps.Map(document.getElementById("map"), {
-    center: { lat: -24.6282, lng: 25.9231 },
-    zoom: 12,
-  });
-}
-
-// --- Chart.js setup ---
-let tripsChart, vehiclesChart;
-
-function setupCharts() {
-  const tripsCtx = document.getElementById("tripsChart").getContext("2d");
-  tripsChart = new Chart(tripsCtx, {
-    type: "bar",
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: "Trips Per Day",
-          data: [],
-          backgroundColor: "rgba(54, 162, 235, 0.7)",
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      scales: { y: { beginAtZero: true } },
-    },
-  });
-
-  const vehiclesCtx = document.getElementById("vehiclesChart").getContext("2d");
-  vehiclesChart = new Chart(vehiclesCtx, {
-    type: "pie",
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: "Vehicle Usage",
-          data: [],
-          backgroundColor: [
-            "rgba(255, 99, 132, 0.7)",
-            "rgba(54, 162, 235, 0.7)",
-            "rgba(255, 206, 86, 0.7)",
-            "rgba(75, 192, 192, 0.7)",
-            "rgba(153, 102, 255, 0.7)",
-            "rgba(255, 159, 64, 0.7)",
-          ],
-        },
-      ],
-    },
-    options: { responsive: true },
-  });
-}
-
-// --- Load data & update charts ---
-async function loadAndShowData() {
-  // Load trips collection (add your own filtering logic if needed)
-  const tripsSnapshot = await db.collection("trips").get();
-  const trips = tripsSnapshot.docs.map((doc) => doc.data());
-
-  // Trips per day aggregation
-  const tripsPerDay = {};
-  trips.forEach((trip) => {
-    // Assuming trip.startTimestamp is a Firestore Timestamp
-    const date = trip.startTimestamp
-      ? trip.startTimestamp.toDate().toISOString().slice(0, 10)
-      : "Unknown";
-    tripsPerDay[date] = (tripsPerDay[date] || 0) + 1;
-  });
-
-  const tripDates = Object.keys(tripsPerDay).sort();
-  const tripCounts = tripDates.map((d) => tripsPerDay[d]);
-
-  updateTripsChart(tripDates, tripCounts);
-
-  // Vehicle usage aggregation
-  const vehicleUsage = {};
-  trips.forEach((trip) => {
-    const vId = trip.vehicleId || "Unknown";
-    vehicleUsage[vId] = (vehicleUsage[vId] || 0) + 1;
-  });
-
-  const vehicleLabels = Object.keys(vehicleUsage);
-  const vehicleCounts = vehicleLabels.map((v) => vehicleUsage[v]);
-
-  updateVehiclesChart(vehicleLabels, vehicleCounts);
-}
-
-function updateTripsChart(labels, data) {
-  tripsChart.data.labels = labels;
-  tripsChart.data.datasets[0].data = data;
-  tripsChart.update();
-}
-
-function updateVehiclesChart(labels, data) {
-  vehiclesChart.data.labels = labels;
-  vehiclesChart.data.datasets[0].data = data;
-  vehiclesChart.update();
-}
-
-// Optional: filter button event (hook this up if you want to filter by driver/date)
+// Filter trips button - placeholder for filtering logic
 document.getElementById("filterBtn").addEventListener("click", () => {
-  alert("Filtering feature coming soon!"); // placeholder
+  const driver = document.getElementById("driverInput").value.trim();
+  const vehicle = document.getElementById("vehicleInput").value.trim();
+  const start = document.getElementById("startDateInput").value;
+  const end = document.getElementById("endDateInput").value;
+  console.log("Filter trips for", { driver, vehicle, start, end });
+
+  // TODO: Add filtering logic to query Firestore and update map and charts
 });
