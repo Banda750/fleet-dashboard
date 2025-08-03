@@ -1,62 +1,47 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fleet Management Dashboard</title>
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-auth-compat.js"></script>
-
-  <!-- FirebaseUI -->
-  <script src="https://cdn.firebase.com/libs/firebaseui/6.0.2/firebaseui.js"></script>
-  <link type="text/css" rel="stylesheet" href="https://cdn.firebase.com/libs/firebaseui/6.0.2/firebaseui.css" />
-
-  <!-- Awesomplete -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.js"></script>
-
-  <!-- Google Maps -->
-  <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgUO-JbOZ-CEXyHxL-JAlPWvDs-FbiU2o&callback=initMap"
-    async
-    defer
-  ></script>
-
-  <!-- Styles -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fleet Dashboard</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/ui/6.0.2/firebase-ui-auth.js"></script>
+  <link rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.0.2/firebase-ui-auth.css" />
+  <script>
+    function initMap() {
+      const map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: -24.6282, lng: 25.9231 },
+        zoom: 12,
+      });
+    }
+  </script>
 </head>
 <body>
-
-  <h2>Fleet Management Dashboard</h2>
-
   <div id="login-container">
-    <h3>Please Log In</h3>
+    <h2>Login</h2>
     <div id="firebaseui-auth-container"></div>
   </div>
 
   <div id="dashboard-container" style="display:none;">
+    <h2>Fleet Dashboard</h2>
     <div>
-      <label>Driver:
-        <input id="driverInput" placeholder="Start typing driver name..." autocomplete="off" />
-      </label>
-      <label>Vehicle:
-        <input id="vehicleInput" placeholder="Start typing vehicle plate..." autocomplete="off" />
-      </label>
-      <label>Start Date:
-        <input type="date" id="startDateInput" />
-      </label>
-      <label>End Date:
-        <input type="date" id="endDateInput" />
-      </label>
-      <button id="filterBtn">Filter Trips</button>
+      <input id="driverInput" placeholder="Driver Name" />
+      <input id="vehicleInput" placeholder="Vehicle ID" />
+      <input id="startDateInput" type="date" />
+      <input id="endDateInput" type="date" />
+      <button id="filterBtn">Filter</button>
     </div>
-
-    <div id="map"></div>
+    <div id="map" style="width:100%; height:500px; margin-top:20px;"></div>
   </div>
 
   <script src="app.js"></script>
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgUO-JbOZ-CEXyHxL-JAlPWvDs-FbiU2o&callback=initMap"
+    async defer></script>
 </body>
 </html>
+
