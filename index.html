@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dashboard</title>
-  
+  <title>Fleet Management Dashboard</title>
+
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
@@ -17,8 +17,10 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <!-- Google Maps API: replace YOUR_GOOGLE_MAPS_API_KEY below -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY"></script>
+
   <style>
-    /* Basic Reset & Fonts */
     body, html {
       margin: 0; padding: 0; height: 100%;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -27,7 +29,7 @@
       display: flex; flex-direction: column;
       min-height: 100vh;
     }
-    /* Navigation */
+
     nav {
       background-color: #1e293b;
       color: white;
@@ -54,32 +56,28 @@
       background-color: #dc2626;
     }
 
-    /* Main Dashboard Layout */
     main {
       flex: 1;
-      padding: 1.5rem 2rem;
+      padding: 1rem 2rem;
+      max-width: 1200px;
+      margin: 2rem auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgb(0 0 0 / 0.05);
       display: grid;
       grid-template-columns: 2fr 3fr;
       gap: 2rem;
-      background: white;
-      max-width: 1200px;
-      margin: 2rem auto;
-      border-radius: 8px;
-      box-shadow: 0 4px 15px rgb(0 0 0 / 0.05);
+      height: 80vh;
     }
 
-    /* Calendar Container */
     #calendar {
       border: 1px solid #ddd;
       border-radius: 8px;
       padding: 1rem;
-      background: #fff;
       box-shadow: inset 0 0 5px rgb(0 0 0 / 0.05);
-      height: 100%;
-      min-height: 500px;
+      overflow-y: auto;
     }
 
-    /* Chart Container */
     #chart-container {
       background: #fff;
       border: 1px solid #ddd;
@@ -90,116 +88,193 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      height: 100%;
-      min-height: 500px;
     }
 
-    /* Responsive for smaller screens */
+    #map {
+      margin-top: 1.5rem;
+      height: 300px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      box-shadow: inset 0 0 5px rgb(0 0 0 / 0.05);
+    }
+
     @media (max-width: 900px) {
       main {
         grid-template-columns: 1fr;
+        height: auto;
         margin: 1rem;
-        padding: 1rem;
       }
-      #calendar, #chart-container {
-        min-height: 350px;
+      #calendar, #chart-container, #map {
+        height: 350px;
+        margin-bottom: 1rem;
       }
     }
-
   </style>
 </head>
 <body>
 
 <nav>
-  <h1>My Dashboard</h1>
+  <h1>Fleet Management Dashboard</h1>
   <button id="logoutBtn">Logout</button>
 </nav>
 
 <main>
   <section id="calendar"></section>
   <section id="chart-container">
-    <canvas id="analyticsChart" width="400" height="400"></canvas>
+    <canvas id="analyticsChart" width="400" height="200"></canvas>
+    <div id="map"></div>
   </section>
 </main>
 
 <script>
-  // TODO: Replace with your Firebase config
+  // ========== Firebase Setup ==========
+  // Replace this with your Firebase config
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    // ... rest of your config
+    apiKey: "YOUR_FIREBASE_API_KEY",
+    authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
+    projectId: "YOUR_FIREBASE_PROJECT_ID",
+    // other config values...
   };
 
-  // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
+  const db = firebase.firestore();
 
-  // Check Auth State
+  // Auth state check
   auth.onAuthStateChanged(user => {
     if (!user) {
-      // Not logged in, redirect to login page or show login UI
-      window.location.href = 'login.html'; // Change as needed
+      window.location.href = 'login.html'; // Adjust path if needed
     }
   });
 
-  // Logout button
+  // Logout handler
   document.getElementById('logoutBtn').addEventListener('click', () => {
     auth.signOut().then(() => {
-      window.location.href = 'login.html'; // Change as needed
+      window.location.href = 'login.html'; // Adjust path if needed
     });
   });
 
-  // Initialize FullCalendar
-  document.addEventListener('DOMContentLoaded', function() {
+  // ========== FullCalendar Setup ==========
+  document.addEventListener('DOMContentLoaded', () => {
     const calendarEl = document.getElementById('calendar');
     const calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: 'dayGridMonth',
-      height: '100%',
+      height: 'auto',
       headerToolbar: {
         left: 'prev,next today',
         center: 'title',
         right: 'dayGridMonth,timeGridWeek,timeGridDay'
       },
       events: [
-        { title: 'Meeting', start: new Date().toISOString().split('T')[0], allDay: true },
-        { title: 'Project Deadline', start: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString().split('T')[0] }
+        { title: 'Maintenance', start: new Date().toISOString().split('T')[0], allDay: true },
+        { title: 'Vehicle Inspection', start: new Date(new Date().setDate(new Date().getDate() + 4)).toISOString().split('T')[0] }
       ],
     });
     calendar.render();
   });
 
-  // Chart.js example
+  // ========== Chart.js Setup ==========
   const ctx = document.getElementById('analyticsChart').getContext('2d');
   const analyticsChart = new Chart(ctx, {
-    type: 'bar',
+    type: 'line',
     data: {
       labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
       datasets: [{
-        label: 'Visits',
-        data: [12, 19, 7, 15, 11, 9, 14],
-        backgroundColor: '#3b82f6',
-        borderRadius: 4,
+        label: 'Trips per Day',
+        data: [3, 5, 2, 6, 4, 7, 3],
+        fill: false,
+        borderColor: '#3b82f6',
+        tension: 0.2,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        backgroundColor: '#60a5fa'
       }]
     },
     options: {
       responsive: true,
       plugins: {
-        legend: {
-          display: true,
-          labels: { color: '#333', font: { size: 14, weight: '600' } }
-        }
+        legend: { labels: { color: '#333', font: { size: 14, weight: '600' } } }
       },
       scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { color: '#555' }
-        },
-        x: {
-          ticks: { color: '#555' }
-        }
+        y: { beginAtZero: true, ticks: { color: '#555' } },
+        x: { ticks: { color: '#555' } }
       }
     }
+  });
+
+  // ========== Google Maps Setup ==========
+  let map, markers = [], pathPolyline;
+
+  function initMap() {
+    // Center map roughly in Botswana (adjust to your region)
+    const center = { lat: -24.658, lng: 25.908 };
+
+    map = new google.maps.Map(document.getElementById('map'), {
+      center,
+      zoom: 7,
+    });
+
+    // Load GPS data from Firestore and update map
+    watchGPSData();
+  }
+
+  // Simulate tracking multiple vehicles, here with a single vehicle ID "vehicle1"
+  const vehicleId = 'vehicle1';
+
+  // Listen to Firestore location updates in real time
+  function watchGPSData() {
+    const locationsRef = db.collection('vehicles').doc(vehicleId).collection('locations').orderBy('timestamp');
+
+    locationsRef.onSnapshot(snapshot => {
+      // Clear existing markers
+      markers.forEach(marker => marker.setMap(null));
+      markers = [];
+
+      const pathCoords = [];
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const pos = { lat: data.latitude, lng: data.longitude };
+        pathCoords.push(pos);
+
+        // Place marker for each location point
+        const marker = new google.maps.Marker({
+          position: pos,
+          map: map,
+          title: new Date(data.timestamp.toDate()).toLocaleString(),
+        });
+        markers.push(marker);
+      });
+
+      // Draw polyline for trip history
+      if (pathPolyline) {
+        pathPolyline.setMap(null);
+      }
+
+      pathPolyline = new google.maps.Polyline({
+        path: pathCoords,
+        geodesic: true,
+        strokeColor: '#3b82f6',
+        strokeOpacity: 0.8,
+        strokeWeight: 4,
+      });
+      pathPolyline.setMap(map);
+
+      // Adjust map bounds to fit all markers
+      if (pathCoords.length) {
+        const bounds = new google.maps.LatLngBounds();
+        pathCoords.forEach(coord => bounds.extend(coord));
+        map.fitBounds(bounds);
+      }
+    });
+  }
+
+  // Initialize the map after page load
+  window.initMap = initMap;
+
+  // Because Google Maps JS API needs a callback, call initMap here
+  window.addEventListener('load', () => {
+    initMap();
   });
 </script>
 
