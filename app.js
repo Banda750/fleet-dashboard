@@ -1,4 +1,4 @@
-// Firebase config
+// --- Firebase config ---
 const firebaseConfig = {
   apiKey: "AIzaSyAgUO-JbOZ-CEXyHxL-JAlPWvDs-FbiU2o",
   authDomain: "fleettrack-d8dd2.firebaseapp.com",
@@ -13,42 +13,37 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Initialize FirebaseUI Auth
+// --- FirebaseUI Auth Setup ---
 const ui = new firebaseui.auth.AuthUI(auth);
 const uiConfig = {
-  signInOptions: [
-    firebase.auth.EmailAuthProvider.PROVIDER_ID
-  ],
+  signInOptions: [firebase.auth.EmailAuthProvider.PROVIDER_ID],
   callbacks: {
-    signInSuccessWithAuthResult: () => {
+    signInSuccessWithAuthResult: function () {
       document.getElementById("login-container").style.display = "none";
       document.getElementById("dashboard-container").style.display = "block";
       initMap();
-      initAwesomplete();
+      setupCharts();
+      loadAndShowData();
       return false;
-    }
-  }
+    },
+  },
 };
-
-// Start FirebaseUI Auth
-firebase.auth().onAuthStateChanged(user => {
+firebase.auth().onAuthStateChanged((user) => {
   if (user) {
     document.getElementById("login-container").style.display = "none";
     document.getElementById("dashboard-container").style.display = "block";
     initMap();
-    initAwesomplete();
+    setupCharts();
+    loadAndShowData();
   } else {
     document.getElementById("login-container").style.display = "block";
     document.getElementById("dashboard-container").style.display = "none";
-    ui.start('#firebaseui-auth-container', uiConfig);
+    ui.start("#firebaseui-auth-container", uiConfig);
   }
 });
 
-// Google Map & markers
+// --- Google Maps setup ---
 let map;
-const tripPolylines = [];
-const tripMarkers = [];
-
 function initMap() {
   map = new google.maps.Map(document.getElementById("map"), {
     center: { lat: -24.6282, lng: 25.9231 },
@@ -56,35 +51,100 @@ function initMap() {
   });
 }
 
-function clearMap() {
-  tripMarkers.forEach(m => m.setMap(null));
-  tripMarkers.length = 0;
+// --- Chart.js setup ---
+let tripsChart, vehiclesChart;
 
-  tripPolylines.forEach(p => p.setMap(null));
-  tripPolylines.length = 0;
+function setupCharts() {
+  const tripsCtx = document.getElementById("tripsChart").getContext("2d");
+  tripsChart = new Chart(tripsCtx, {
+    type: "bar",
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: "Trips Per Day",
+          data: [],
+          backgroundColor: "rgba(54, 162, 235, 0.7)",
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      scales: { y: { beginAtZero: true } },
+    },
+  });
+
+  const vehiclesCtx = document.getElementById("vehiclesChart").getContext("2d");
+  vehiclesChart = new Chart(vehiclesCtx, {
+    type: "pie",
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: "Vehicle Usage",
+          data: [],
+          backgroundColor: [
+            "rgba(255, 99, 132, 0.7)",
+            "rgba(54, 162, 235, 0.7)",
+            "rgba(255, 206, 86, 0.7)",
+            "rgba(75, 192, 192, 0.7)",
+            "rgba(153, 102, 255, 0.7)",
+            "rgba(255, 159, 64, 0.7)",
+          ],
+        },
+      ],
+    },
+    options: { responsive: true },
+  });
 }
 
-function addTripMarkers(trip) {
-  if (trip.startLocation) {
-    const startMarker = new google.maps.Marker({
-      position: {
-        lat: trip.startLocation.latitude,
-        lng: trip.startLocation.longitude,
-      },
-      map,
-      icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
-      title: `Trip Start: ${new Date(trip.startTimestamp.seconds * 1000).toLocaleString()}`
-    });
-    tripMarkers.push(startMarker);
-  }
-  if (trip.endLocation) {
-    const endMarker = new google.maps.Marker({
-      position: {
-        lat: trip.endLocation.latitude,
-        lng: trip.endLocation.longitude,
-      },
-      map,
-      icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
-      title: `Trip End: ${new Date(trip.endTimestamp.seconds * 1000).toLocaleString()}`
-    });
-    tripMarkers.push(endMarke
+// --- Load data & update charts ---
+async function loadAndShowData() {
+  // Load trips collection (add your own filtering logic if needed)
+  const tripsSnapshot = await db.collection("trips").get();
+  const trips = tripsSnapshot.docs.map((doc) => doc.data());
+
+  // Trips per day aggregation
+  const tripsPerDay = {};
+  trips.forEach((trip) => {
+    // Assuming trip.startTimestamp is a Firestore Timestamp
+    const date = trip.startTimestamp
+      ? trip.startTimestamp.toDate().toISOString().slice(0, 10)
+      : "Unknown";
+    tripsPerDay[date] = (tripsPerDay[date] || 0) + 1;
+  });
+
+  const tripDates = Object.keys(tripsPerDay).sort();
+  const tripCounts = tripDates.map((d) => tripsPerDay[d]);
+
+  updateTripsChart(tripDates, tripCounts);
+
+  // Vehicle usage aggregation
+  const vehicleUsage = {};
+  trips.forEach((trip) => {
+    const vId = trip.vehicleId || "Unknown";
+    vehicleUsage[vId] = (vehicleUsage[vId] || 0) + 1;
+  });
+
+  const vehicleLabels = Object.keys(vehicleUsage);
+  const vehicleCounts = vehicleLabels.map((v) => vehicleUsage[v]);
+
+  updateVehiclesChart(vehicleLabels, vehicleCounts);
+}
+
+function updateTripsChart(labels, data) {
+  tripsChart.data.labels = labels;
+  tripsChart.data.datasets[0].data = data;
+  tripsChart.update();
+}
+
+function updateVehiclesChart(labels, data) {
+  vehiclesChart.data.labels = labels;
+  vehiclesChart.data.datasets[0].data = data;
+  vehiclesChart.update();
+}
+
+// Optional: filter button event (hook this up if you want to filter by driver/date)
+document.getElementById("filterBtn").addEventListener("click", () => {
+  alert("Filtering feature coming soon!"); // placeholder
+});
